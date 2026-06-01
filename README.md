@@ -1,4 +1,4 @@
-# THEATRES DASHBOARD
+# LARGE FORMAT THEATRES DASHBOARD (UPDATED OCT 2021)
 
 An interactive Streamlit dashboard analyzing **1,100+ large-format theaters** across **50+ countries**. Explore global cinema infrastructure, projector technology, and theater trends with comprehensive data visualization and search capabilities.
 
