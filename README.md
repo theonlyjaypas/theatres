@@ -88,12 +88,34 @@ An interactive Streamlit dashboard analyzing **1,100+ large-format theaters** ac
 
 ## USAGE
 
+### Local Development
+
 Run the dashboard:
 ```bash
 streamlit run app.py
 ```
 
 The dashboard will open in your browser at `http://localhost:8501`
+
+### Docker Deployment (Recommended for Production)
+
+For production deployments, use Docker:
+
+```bash
+# Build and run
+docker-compose up --build
+
+# Or run in background
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop application
+docker-compose down
+```
+
+**See [DEPLOYMENT.md](DEPLOYMENT.md) for comprehensive deployment instructions.**
 
 ## NAVIGATION
 
@@ -178,12 +200,38 @@ To update the data:
 - Clear browser cache
 - Restart the Streamlit server
 
+## CONFIGURATION
+
+### Environment Variables
+
+Create a `.env` file (copy from `.env.example`) to configure:
+
+```bash
+cp .env.example .env
+```
+
+Key variables:
+- `ENVIRONMENT` — Set to `production` for production deployments
+- `LOG_LEVEL` — Control logging verbosity (DEBUG, INFO, WARNING, ERROR)
+- `DATA_PATH` — Path to the CSV data file
+- `PORT` — Server port (default 8501)
+
+See `.env.example` for all available options.
+
+### Logging
+
+- Logs are written to `logs/app.log`
+- Console output is enabled for monitoring
+- Log level controlled by `LOG_LEVEL` environment variable
+
 ## REQUIREMENTS
 
 See `requirements.txt`:
 - streamlit==1.36.0
 - pandas==2.2.0
 - plotly==5.18.0
+- gunicorn==21.2.0 (for production)
+- python-dotenv==1.0.0 (for environment configuration)
 
 ## LICENSE
 

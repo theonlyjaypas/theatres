@@ -3,6 +3,22 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
+import logging
+import sys
+from pathlib import Path
+
+# Configure logging
+from config import Config
+
+logger = Config.setup_logging()
+logger.info("Starting Theatres Dashboard application")
+
+try:
+    Config.validate()
+except FileNotFoundError as e:
+    logger.error(f"Startup failed: {e}")
+    st.error(f"Application startup failed: {e}")
+    sys.exit(1)
 
 st.set_page_config(
     page_title="LARGE FORMAT DASHBOARD",
@@ -147,12 +163,35 @@ page = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.caption("Theater data compiled from LFExaminer (https://lfexaminer.com/theaters/)")
 
-# Load data
+# Load data with error handling
 @st.cache_data
 def load_data():
-    df = pd.read_csv('theaters.csv')
-    df['Opened'] = pd.to_datetime(df['Opened'], errors='coerce')
-    return df
+    try:
+        logger.info(f"Loading data from {Config.DATA_PATH}")
+        df = pd.read_csv(Config.DATA_PATH)
+
+        # Validate required columns
+        required_columns = {
+            'Organization', 'Country', 'City', 'Projector_Brand', 'Fmt',
+            '2D_3D', 'Flat_Dome', 'Seats', 'Screen_Size', 'Opened', 'Type'
+        }
+        missing_columns = required_columns - set(df.columns)
+        if missing_columns:
+            error_msg = f"Missing required columns: {', '.join(missing_columns)}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
+        df['Opened'] = pd.to_datetime(df['Opened'], errors='coerce')
+        logger.info(f"Loaded {len(df)} theater records successfully")
+        return df
+    except FileNotFoundError:
+        logger.error(f"Data file not found: {Config.DATA_PATH}")
+        st.error(f"❌ Data file not found: {Config.DATA_PATH}")
+        st.stop()
+    except Exception as e:
+        logger.error(f"Error loading data: {e}")
+        st.error(f"❌ Error loading data: {e}")
+        st.stop()
 
 df = load_data()
 
@@ -497,6 +536,16 @@ elif page == "Theater Search":
 
     st.markdown("---")
 
+    # GENERAL SEARCH BAR
+    st.subheader("QUICK SEARCH")
+    search_term = st.text_input(
+        "Search by theater name, city, country, or any other field",
+        placeholder="e.g., IMAX, Tokyo, USA",
+        key="general_search"
+    )
+
+    st.markdown("---")
+
     # FILTER CONTROLS
     col1, col2, col3, col4, col5 = st.columns(5)
 
@@ -572,6 +621,15 @@ elif page == "Theater Search":
             (filtered_df['Opened'] <= pd.Timestamp(date_range[1]))
         ]
 
+    # Apply general search term across all columns
+    if search_term:
+        search_term_lower = search_term.lower()
+        mask = filtered_df.astype(str).apply(
+            lambda x: x.str.contains(search_term_lower, case=False, na=False).any(),
+            axis=1
+        )
+        filtered_df = filtered_df[mask]
+
     st.markdown("---")
 
     # RESULTS METRICS
@@ -614,7 +672,7 @@ elif page == "Theater Search":
     st.markdown("---")
     csv = filtered_df.to_csv(index=False)
     st.download_button(
-        label="📥 Download Results as CSV",
+        label="Download Results as CSV",
         data=csv,
         file_name="filtered_theaters.csv",
         mime="text/csv"
